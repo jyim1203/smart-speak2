@@ -3,7 +3,7 @@ Deepgram service (SDK v6.x compatible).
 """
 
 import re
-from deepgram import DeepgramClient
+from deepgram import DeepgramClient, PrerecordedOptions, BufferSource
 from app.config import get_settings
 
 settings = get_settings()
@@ -23,8 +23,9 @@ class DeepgramService:
         with open(video_path, "rb") as f:
             audio_data = f.read()
 
-        response = self.client.listen.v1.media.transcribe_file(
-            request=audio_data,
+        
+        payload: BufferSource = {"buffer": audio_data}
+        options = PrerecordedOptions(
             model="nova-2",
             language="en",
             smart_format=True,
@@ -32,6 +33,7 @@ class DeepgramService:
             utterances=True,
             filler_words=True,
         )
+        response = self.client.listen.prerecorded.v("1").transcribe_file(payload, options)
 
         channel = response.results.channels[0].alternatives[0]
         transcript = channel.transcript

@@ -4,6 +4,94 @@ AI-powered public speaking coach. Upload or record a video and get detailed feed
 
 ---
 
+## Quick Start
+
+Get up and running in ~10 minutes.
+
+### Prerequisites
+
+- Node.js 18+
+- Python 3.12 — **do not use 3.13 or 3.14**, prebuilt wheels aren't available yet.
+  Download from [python.org/downloads](https://www.python.org/downloads/) and install.
+- FFmpeg — run this then **restart your terminal** before continuing:
+```bash
+  winget install Gyan.FFmpeg
+```
+- API keys for [Twelve Labs](https://playground.twelvelabs.io/), [Deepgram](https://console.deepgram.com/), and [Google Gemini](https://aistudio.google.com/)
+
+---
+
+### 1. Backend
+```bash
+cd backend
+py -3.12 -m venv .venv --without-pip
+source .venv/Scripts/activate
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Edit `backend/.env` and fill in your keys:
+```env
+TWELVELABS_API_KEY=your_key_here
+DEEPGRAM_API_KEY=your_key_here
+GEMINI_API_KEY=your_key_here
+
+SUPABASE_URL=https://placeholder.supabase.co
+SUPABASE_SERVICE_KEY=placeholder
+SUPABASE_BUCKET=speakiq-videos
+
+BACKEND_URL=http://localhost:8001
+FRONTEND_URL=http://localhost:3000
+
+MAX_VIDEO_SIZE_MB=500
+MAX_VIDEO_DURATION_SECONDS=600
+```
+
+Start the backend:
+```bash
+uvicorn app.main:app --reload --port 8001
+```
+
+---
+
+### 2. Frontend *(open a new terminal)*
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+```
+
+Edit `frontend/.env.local`:
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8001
+```
+
+Start the frontend:
+```bash
+npm run dev
+```
+
+---
+
+### 3. Open [http://localhost:3000](http://localhost:3000)
+
+Upload a video and hit **Analyze**. Analysis takes 1–2 minutes depending on video length.
+
+> Keep both terminals open while using the app. The backend must be running before the frontend will work.
+
+---
+
+### Troubleshooting
+
+- **venv fails to create** — make sure you're using `py -3.12` not `python`, and that you're inside the `backend` folder
+- **ffmpeg error on upload** — ffmpeg isn't on PATH, reinstall with `winget install Gyan.FFmpeg` and restart your terminal
+- **Port errors** — make sure both `backend/.env` and `frontend/.env.local` use port 8001, and nothing else is running on that port
+- **Supabase errors** — the placeholder values in `.env` are fine, Supabase is not used in this demo
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
@@ -12,18 +100,17 @@ AI-powered public speaking coach. Upload or record a video and get detailed feed
 | Backend | Python FastAPI |
 | Video Analysis | Twelve Labs (Marengo + Pegasus models) |
 | Transcription | Deepgram Nova-2 |
-| Coaching AI | Google Gemini 1.5 Pro |
+| Coaching AI | Google Gemini 2.5 Flash |
 | Storage | Supabase Storage (optional, for future history) |
 
 ---
 
 ## Architecture
-
 ```
 User uploads/records video
-        ↓
+↓
 FastAPI receives video → saves to temp file
-        ↓
+↓
 ┌────────────────────────────────────┐
 │  Parallel execution                │
 │  ├── Twelve Labs: index + analyze  │
@@ -32,98 +119,25 @@ FastAPI receives video → saves to temp file
 │  └── Deepgram: transcribe          │
 │      (filler words, WPM, text)     │
 └────────────────────────────────────┘
-        ↓
-Gemini 1.5 Pro: combine signals
+↓
+Gemini 2.5 Flash: combine signals
 → scored metrics + coaching tips
-        ↓
+↓
 Frontend: results dashboard
 ```
 
 ---
 
-## Setup
-
-### Prerequisites
-
-- Node.js 18+
-- Python 3.11+
-- API keys for: [Twelve Labs](https://playground.twelvelabs.io/), [Deepgram](https://console.deepgram.com/), [Google Gemini](https://aistudio.google.com/)
-
-### 1. Backend setup
-
-Open a terminal, `cd` into the `backend` folder:
-
-```bash
-cd backend
-```
-
-Create and activate a virtual environment:
-
-```bash
-# Mac/Linux
-python -m venv .venv
-source .venv/bin/activate
-
-# Windows (Git Bash / PowerShell)
-python -m venv .venv
-.venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Copy and fill in your API keys:
-
-```bash
-cp .env.example .env
-```
-
-Open `backend/.env` and set these three — the others can stay as defaults for now:
-
-```env
-TWELVELABS_API_KEY=your_key_here
-DEEPGRAM_API_KEY=your_key_here
-GEMINI_API_KEY=your_key_here
-```
-
-Start the backend:
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-You should see: `Uvicorn running on http://0.0.0.0:8000`
-
-### 2. Frontend setup
-
-Open a **second terminal**, `cd` into the `frontend` folder:
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000)
-
-> **Important:** Run backend and frontend in two separate terminal windows. Don't run them in the same terminal session.
-
----
-
 ## API Reference
 
-### `POST /analyze/submit`
+### `POST /api/analyze/submit`
 Upload a video for analysis.
 
 - **Body:** `multipart/form-data` with `video` field
 - **Accepts:** MP4, MOV, WebM (max 500MB)
 - **Returns:** `{ jobId: string }`
 
-### `GET /analyze/status/:jobId`
+### `GET /api/analyze/status/:jobId`
 Poll for analysis status and result.
 
 **Response while processing:**
@@ -198,22 +212,25 @@ speakiq/
 │   └── ...config files
 │
 └── backend/
-    └── app/
-        ├── main.py               ← FastAPI app
-        ├── config.py             ← settings from .env
-        ├── routers/
-        │   └── analyze.py        ← upload + status endpoints
-        ├── services/
-        │   ├── twelvelabs_service.py
-        │   ├── deepgram_service.py
-        │   ├── gemini_service.py
-        │   └── pipeline.py       ← orchestration
-        └── models/
-            ├── schemas.py        ← Pydantic types
-            └── job_store.py      ← in-memory job state
+└── app/
+├── main.py               ← FastAPI app
+├── config.py             ← settings from .env
+├── routers/
+│   └── analyze.py        ← upload + status endpoints
+├── services/
+│   ├── twelvelabs_service.py
+│   ├── deepgram_service.py
+│   ├── gemini_service.py
+│   └── pipeline.py       ← orchestration
+└── models/
+├── schemas.py        ← Pydantic types
+└── job_store.py      ← in-memory job state
+
 ```
 
 ---
+
+
 
 ## Future Improvements
 

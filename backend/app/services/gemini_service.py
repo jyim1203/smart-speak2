@@ -148,7 +148,7 @@ class GeminiService:
         response = await self.client.aio.models.generate_content(
             model="gemini-2.5-flash",
             contents=SYSTEM_PROMPT + "\n\n" + prompt,
-            config={"temperature": 0.2, "response_mime_type": "application/json"},
+            config={"temperature": 0.2, "response_mime_type": "application/json", "max_output_tokens": 4096},
         )
         raw = response.text
 
