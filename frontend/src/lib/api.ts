@@ -42,7 +42,9 @@ export async function submitRecordingBlob(
   blob: Blob,
   onProgress?: (pct: number) => void
 ): Promise<{ jobId: string }> {
-  const file = new File([blob], 'recording.webm', { type: blob.type })
+  const type = blob.type || 'video/webm'
+  const ext = type.includes('mp4') ? 'mp4' : 'webm'
+  const file = new File([blob], `recording.${ext}`, { type })
   return submitVideoForAnalysis(file, onProgress)
 }
 

@@ -146,7 +146,7 @@ class GeminiService:
         prompt = build_user_prompt(visual_data, audio_data)
 
         response = await self.client.aio.models.generate_content(
-            model="gemini-1.5-pro",
+            model="gemini-2.5-flash",
             contents=SYSTEM_PROMPT + "\n\n" + prompt,
             config={"temperature": 0.2, "response_mime_type": "application/json"},
         )

@@ -43,11 +43,11 @@ export function useRecorder(): UseRecorderReturn {
 
       setStream(mediaStream)
 
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4')
+        ? 'video/mp4'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
         ? 'video/webm;codecs=vp9,opus'
-        : MediaRecorder.isTypeSupported('video/webm')
-        ? 'video/webm'
-        : 'video/mp4'
+        : 'video/webm'
 
       const recorder = new MediaRecorder(mediaStream, { mimeType })
       recorderRef.current = recorder
@@ -59,6 +59,7 @@ export function useRecorder(): UseRecorderReturn {
 
       recorder.onstop = () => {
         const recordedBlob = new Blob(chunksRef.current, { type: mimeType })
+        console.log('Blob size:', recordedBlob.size, 'chunks:', chunksRef.current.length, 'type:', recordedBlob.type)
         const url = URL.createObjectURL(recordedBlob)
         setBlob(recordedBlob)
         setPreviewUrl(url)

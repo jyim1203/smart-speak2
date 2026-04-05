@@ -9,6 +9,7 @@ Handles:
 
 import asyncio
 import json
+import os
 import re
 from twelvelabs import TwelveLabs
 from app.config import get_settings
@@ -46,7 +47,12 @@ class TwelveLabsService:
         def _upload():
             import time
             index_id = self._get_or_create_index()
-            task = self.client.tasks.create(index_id=index_id, video_file=video_path)
+            with open(video_path, "rb") as f:
+                mime = "video/mp4" if video_path.endswith(".mp4") else "video/webm"
+                task = self.client.tasks.create(
+                    index_id=index_id,
+                    video_file=(os.path.basename(video_path), f, mime),
+                )
             while True:
                 t = self.client.tasks.retrieve(task.id)
                 if t.status == "ready":
@@ -73,8 +79,8 @@ class TwelveLabsService:
 }"""
 
         def _generate():
-            result = self.client.generate.text(video_id=video_id, prompt=prompt)
-            return result.data
+            result = self.client.analyze(video_id=video_id, prompt=prompt)
+            return result.data if hasattr(result, "data") else str(result)
 
         raw = await loop.run_in_executor(None, _generate)
         cleaned = re.sub(r"```(?:json)?", "", raw).strip().rstrip("`").strip()

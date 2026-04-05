@@ -29,14 +29,15 @@ async def submit_video(
     Returns a jobId to poll for status.
     """
     # Validate mime type
-    if video.content_type not in ALLOWED_MIME_TYPES:
+    base_type = (video.content_type or "").split(";")[0].strip()
+    if base_type not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=415,
             detail=f"Unsupported file type: {video.content_type}. Use MP4, MOV, or WebM."
         )
 
     # Stream to a temp file (don't hold entire file in memory)
-    suffix = Path(video.filename or "video.mp4").suffix or ".mp4"
+    suffix = Path(video.filename or "video.webm").suffix or ".webm"
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     total_bytes = 0
 
