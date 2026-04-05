@@ -17,7 +17,19 @@ async def fix_video_duration(video_path: str) -> str:
     fixed_path = video_path.rsplit('.', 1)[0] + '_fixed.mp4'
     try:
         import shutil
-        ffmpeg_bin = shutil.which('ffmpeg') or shutil.which('ffmpeg.exe') or 'ffmpeg'
+        FFMPEG_COMMON_PATHS = [
+            r'C:\Users\kyamin\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1-full_build\bin\ffmpeg.exe',
+            r'C:\ffmpeg\bin\ffmpeg.exe',
+            '/usr/bin/ffmpeg',
+            '/usr/local/bin/ffmpeg',
+        ]
+        ffmpeg_bin = shutil.which('ffmpeg') or shutil.which('ffmpeg.exe')
+        if not ffmpeg_bin:
+            for p in FFMPEG_COMMON_PATHS:
+                if os.path.exists(p):
+                    ffmpeg_bin = p
+                    break
+        ffmpeg_bin = ffmpeg_bin or 'ffmpeg'
         result = subprocess.run(
             [ffmpeg_bin, '-i', video_path, '-c:v', 'libx264', '-c:a', 'aac', '-y', fixed_path],
             capture_output=True, timeout=120
